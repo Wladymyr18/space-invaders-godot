@@ -79,7 +79,7 @@ func _load_scores() -> void:
         return
     var text := file.get_as_text()
     file.close()
-    var result := JSON.parse_string(text)
+    var result: Variant = JSON.parse_string(text)
     if result is Array:
         high_scores = result
         high_scores.sort_custom(_sort_descending)

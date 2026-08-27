@@ -13,8 +13,6 @@ script = ExtResource("1_enemy")
 bullet_scene = ExtResource("2_bullet")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-## Replace with your enemy spritesheet using frame animation.
-## Frame 0 = pose A, Frame 1 = pose B  (classic alternating animation)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_1")
