@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+env:
+  GODOT_VERSION: "4.2.2"
+
 jobs:
   export-android:
     name: Android Export
@@ -13,7 +16,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Generate debug keystore in workspace
+      - name: Install Godot
+        run: |
+          wget -q "https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip"
+          unzip -q "Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip"
+          sudo install "Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64" /usr/local/bin/godot
+
+      - name: Install export templates (correct path)
+        run: |
+          TEMPLATES_DIR="$HOME/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable"
+          mkdir -p "$TEMPLATES_DIR"
+          wget -q "https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz"
+          unzip -q "Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz" -d /tmp/tpl
+          mv /tmp/tpl/templates/* "$TEMPLATES_DIR/"
+          echo "Templates installed:"
+          ls "$TEMPLATES_DIR" | grep -i android
+
+      - name: Generate debug keystore
         run: |
           keytool -genkey -v \
             -keystore "$GITHUB_WORKSPACE/debug.keystore" \
@@ -21,26 +40,72 @@ jobs:
             -keypass android -keyalg RSA -keysize 2048 \
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-          echo "Keystore: $GITHUB_WORKSPACE/debug.keystore"
+
+      - name: Configure editor settings
+        run: |
+          ANDROID_SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          python3 -c "
+          import os
+          sdk  = os.environ.get('ANDROID_SDK_ROOT', '/usr/local/lib/android/sdk')
+          java = os.environ.get('JAVA_HOME', '/usr/lib/jvm/temurin-11-jdk-amd64')
+          home = os.path.expanduser('~')
+          ws   = os.environ.get('GITHUB_WORKSPACE', '')
+          lines = [
+            '[gd_resource type=\"EditorSettings\" format=3]',
+            '',
+            '[resource]',
+            'export/android/android_sdk_path = \"' + sdk  + '\"',
+            'export/android/java_sdk_path = \"'    + java + '\"',
+            'export/android/debug_keystore = \"'   + ws + '/debug.keystore\"',
+            'export/android/debug_keystore_user = \"androiddebugkey\"',
+            'export/android/debug_keystore_pass = \"android\"',
+          ]
+          path = home + '/.config/godot/editor_settings-4.tres'
+          os.makedirs(os.path.dirname(path), exist_ok=True)
+          open(path, 'w').write('\n'.join(lines) + '\n')
+          print('Settings written to', path)
+          "
 
       - name: Inject keystore into export_presets.cfg
         run: |
-          KEYSTORE="$GITHUB_WORKSPACE/debug.keystore"
-          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$KEYSTORE\"|g" export_presets.cfg
+          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$GITHUB_WORKSPACE/debug.keystore\"|g" export_presets.cfg
           sed -i "s|keystore/debug_user=\"\"|keystore/debug_user=\"androiddebugkey\"|g" export_presets.cfg
           sed -i "s|keystore/debug_password=\"\"|keystore/debug_password=\"android\"|g" export_presets.cfg
-          echo "Keystore lines in preset:"
           grep keystore export_presets.cfg
 
-      - name: Export with Godot
-        uses: firebelley/godot-export@v5.2.1
-        with:
-          godot_executable_download_url: "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip"
-          godot_export_templates_download_url: "https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz"
-          relative_project_path: "./"
-          archive_output: false
-          export_debug: true
-          use_preset_export_path: true
+      - name: Import project
+        run: timeout 60 godot --headless --import 2>&1 || true
+
+      - name: Re-apply editor settings (import may reset them)
+        run: |
+          python3 -c "
+          import os
+          sdk  = os.environ.get('ANDROID_SDK_ROOT', '/usr/local/lib/android/sdk')
+          java = os.environ.get('JAVA_HOME', '/usr/lib/jvm/temurin-11-jdk-amd64')
+          home = os.path.expanduser('~')
+          ws   = os.environ.get('GITHUB_WORKSPACE', '')
+          lines = [
+            '[gd_resource type=\"EditorSettings\" format=3]',
+            '',
+            '[resource]',
+            'export/android/android_sdk_path = \"' + sdk  + '\"',
+            'export/android/java_sdk_path = \"'    + java + '\"',
+            'export/android/debug_keystore = \"'   + ws + '/debug.keystore\"',
+            'export/android/debug_keystore_user = \"androiddebugkey\"',
+            'export/android/debug_keystore_pass = \"android\"',
+          ]
+          path = home + '/.config/godot/editor_settings-4.tres'
+          open(path, 'w').write('\n'.join(lines) + '\n')
+          print('Settings re-applied')
+          "
+
+      - name: Export APK
+        run: |
+          mkdir -p builds
+          godot --headless --export-debug "Android" "$GITHUB_WORKSPACE/builds/SpaceInvadersPro.apk" 2>&1
+
+      - name: Verify APK
+        run: ls -lh builds/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
