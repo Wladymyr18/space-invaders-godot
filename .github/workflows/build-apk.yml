@@ -44,26 +44,39 @@ jobs:
       - name: Configure Godot editor settings
         run: |
           ANDROID_SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
-          echo "Using Android SDK at: $ANDROID_SDK"
-          ls "$ANDROID_SDK/build-tools/" || echo "WARNING: build-tools not found"
+          JAVA_HOME_PATH="${JAVA_HOME:-$(dirname $(dirname $(readlink -f $(which java))))}"
+          echo "Android SDK: $ANDROID_SDK"
+          echo "Java home:   $JAVA_HOME_PATH"
           mkdir -p "$HOME/.config/godot"
-          printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\nexport/android/android_sdk_path = "%s"\n' "$ANDROID_SDK" \
-            > "$HOME/.config/godot/editor_settings-4.tres"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" << SETTINGS
+[gd_resource type="EditorSettings" format=3]
+
+[resource]
+export/android/android_sdk_path = "$ANDROID_SDK"
+export/android/java_sdk_path = "$JAVA_HOME_PATH"
+export/android/debug_keystore = "$HOME/.android/debug.keystore"
+export/android/debug_keystore_user = "androiddebugkey"
+export/android/debug_keystore_pass = "android"
+SETTINGS
           cat "$HOME/.config/godot/editor_settings-4.tres"
 
       - name: Inject keystore into export_presets.cfg
         run: |
-          KEYSTORE="$HOME/.android/debug.keystore"
-          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$KEYSTORE\"|g" export_presets.cfg
+          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$HOME/.android/debug.keystore\"|g" export_presets.cfg
           sed -i "s|keystore/debug_user=\"\"|keystore/debug_user=\"androiddebugkey\"|g" export_presets.cfg
           sed -i "s|keystore/debug_password=\"\"|keystore/debug_password=\"android\"|g" export_presets.cfg
-          echo "--- export_presets.cfg keystore section ---"
-          grep keystore export_presets.cfg
+
+      - name: Import project resources
+        run: |
+          timeout 120 godot --headless --import 2>&1 || true
 
       - name: Export APK
         run: |
           mkdir -p builds
-          godot --headless --verbose --export-debug "Android" "builds/${{ env.EXPORT_NAME }}.apk" 2>&1
+          godot --headless --export-debug "Android" "builds/${{ env.EXPORT_NAME }}.apk" 2>&1
+
+      - name: Verify APK exists
+        run: ls -lh builds/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

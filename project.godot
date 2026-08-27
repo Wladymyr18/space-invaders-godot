@@ -15,7 +15,7 @@ config/description="A classic Space Invaders-style game with power-ups, boss fig
 config/version="1.0.0"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.2", "Mobile")
-config/icon="res://assets/sprites/icon.png"
+config/icon="res://icon.svg"
 
 [autoload]
 
