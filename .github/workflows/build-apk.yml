@@ -13,6 +13,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate debug keystore
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkey -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          echo "Keystore created at: $HOME/.android/debug.keystore"
+
+      - name: Inject keystore into export_presets.cfg
+        run: |
+          KEYSTORE_PATH="$HOME/.android/debug.keystore"
+          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$KEYSTORE_PATH\"|g" export_presets.cfg
+          sed -i "s|keystore/debug_user=\"\"|keystore/debug_user=\"androiddebugkey\"|g" export_presets.cfg
+          sed -i "s|keystore/debug_password=\"\"|keystore/debug_password=\"android\"|g" export_presets.cfg
+          echo "Keystore config:"
+          grep keystore export_presets.cfg
+
       - name: Export with Godot
         uses: firebelley/godot-export@v5.2.1
         with:
