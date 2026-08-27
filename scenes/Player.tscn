@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=3 uid="uid://player"]
+
+[ext_resource type="Script" path="res://scripts/entities/Player.gd" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/PlayerBullet.tscn" id="2_bullet"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1"]
+radius = 14.0
+height = 32.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shield"]
+size = Vector2(36, 36)
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 4
+script = ExtResource("1_player")
+bullet_scene = ExtResource("2_bullet")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+## Replace texture with your player ship sprite.
+## Default: a simple polygon drawn via code or a placeholder texture.
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CapsuleShape2D_1")
+
+[node name="ShootTimer" type="Timer" parent="."]
+wait_time = 0.25
+one_shot = true
+
+[node name="ShieldSprite" type="Sprite2D" parent="."]
+visible = false
+modulate = Color(0.3, 0.6, 1.0, 0.65)
+scale = Vector2(1.8, 1.8)
+
+[node name="GunPoint" type="Marker2D" parent="."]
+position = Vector2(0, -22)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

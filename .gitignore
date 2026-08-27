@@ -1,0 +1,14 @@
+# Godot-specific
+.import/
+export.cfg
+export_credentials.cfg
+*.translation
+*.uid
+
+# Builds
+builds/*.apk
+builds/*.aab
+
+# OS
+.DS_Store
+Thumbs.db

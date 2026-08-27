@@ -1,0 +1,62 @@
+[gd_scene load_steps=2 format=3 uid="uid://main_menu"]
+
+[ext_resource type="Script" path="res://scripts/ui/MainMenu.gd" id="1_mainmenu"]
+
+[node name="MainMenu" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_mainmenu")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.02, 0.08, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+alignment = 1
+theme_override_constants/separation = 16
+custom_minimum_size = Vector2(320, 0)
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = "SPACE INVADERS PRO"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+
+[node name="SubtitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = "ARCADE EDITION"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.6, 0.8, 1, 1)
+
+[node name="Spacer" type="Control" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 40)
+
+[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer"]
+text = "  PLAY  "
+theme_override_font_sizes/font_size = 26
+custom_minimum_size = Vector2(240, 60)
+
+[node name="HighScoresButton" type="Button" parent="CenterContainer/VBoxContainer"]
+text = "HIGH SCORES"
+theme_override_font_sizes/font_size = 20
+custom_minimum_size = Vector2(240, 52)
+
+[node name="CreditsLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = "A Godot 4 Production"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+
+[node name="VersionLabel" type="Label" parent="."]
+anchor_bottom = 1.0
+anchor_right = 1.0
+offset_left = 8.0
+offset_top = -24.0
+text = "v1.0.0"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.4, 0.4, 0.4, 1)

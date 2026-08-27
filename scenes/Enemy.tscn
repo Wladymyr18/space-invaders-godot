@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3 uid="uid://enemy"]
+
+[ext_resource type="Script" path="res://scripts/entities/Enemy.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyBullet.tscn" id="2_bullet"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1"]
+size = Vector2(28, 22)
+
+[node name="Enemy" type="Area2D"]
+collision_layer = 4
+collision_mask = 10
+script = ExtResource("1_enemy")
+bullet_scene = ExtResource("2_bullet")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+## Replace with your enemy spritesheet using frame animation.
+## Frame 0 = pose A, Frame 1 = pose B  (classic alternating animation)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_1")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="ShootTimer" type="Timer" parent="."]
+wait_time = 2.0
+autostart = false

@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3 uid="uid://gameover"]
+
+[ext_resource type="Script" path="res://scripts/ui/GameOver.gd" id="1_go"]
+
+[node name="GameOver" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_go")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.0, 0.0, 0.04, 0.92)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+alignment = 1
+theme_override_constants/separation = 18
+custom_minimum_size = Vector2(300, 0)
+
+[node name="GameOverLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = "GAME OVER"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 42
+theme_override_colors/font_color = Color(1, 0.15, 0.15, 1)
+
+[node name="FinalScoreLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = "SCORE: 0000000"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+
+[node name="RankLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+
+[node name="NameLineEdit" type="LineEdit" parent="CenterContainer/VBoxContainer"]
+placeholder_text = "Enter name (max 10)"
+max_length = 10
+visible = false
+custom_minimum_size = Vector2(240, 44)
+
+[node name="SubmitButton" type="Button" parent="CenterContainer/VBoxContainer"]
+text = "SUBMIT SCORE"
+visible = false
+custom_minimum_size = Vector2(200, 48)
+
+[node name="RetryButton" type="Button" parent="CenterContainer/VBoxContainer"]
+text = "PLAY AGAIN"
+custom_minimum_size = Vector2(200, 52)
+theme_override_font_sizes/font_size = 22
+
+[node name="MenuButton" type="Button" parent="CenterContainer/VBoxContainer"]
+text = "MAIN MENU"
+custom_minimum_size = Vector2(200, 48)
