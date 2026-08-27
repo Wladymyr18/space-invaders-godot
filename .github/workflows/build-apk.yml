@@ -22,14 +22,13 @@ jobs:
           unzip -q "Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip"
           sudo install "Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64" /usr/local/bin/godot
 
-      - name: Install export templates (correct path)
+      - name: Install export templates
         run: |
           TEMPLATES_DIR="$HOME/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable"
           mkdir -p "$TEMPLATES_DIR"
           wget -q "https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz"
           unzip -q "Godot_v${{ env.GODOT_VERSION }}-stable_export_templates.tpz" -d /tmp/tpl
           mv /tmp/tpl/templates/* "$TEMPLATES_DIR/"
-          echo "Templates installed:"
           ls "$TEMPLATES_DIR" | grep -i android
 
       - name: Generate debug keystore
@@ -41,71 +40,121 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Configure editor settings
+      - name: Write config files via Python (avoids CRLF issues)
         run: |
-          ANDROID_SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
-          python3 -c "
+          python3 << 'PYEOF'
           import os
+
           sdk  = os.environ.get('ANDROID_SDK_ROOT', '/usr/local/lib/android/sdk')
           java = os.environ.get('JAVA_HOME', '/usr/lib/jvm/temurin-11-jdk-amd64')
           home = os.path.expanduser('~')
-          ws   = os.environ.get('GITHUB_WORKSPACE', '')
-          lines = [
-            '[gd_resource type=\"EditorSettings\" format=3]',
-            '',
-            '[resource]',
-            'export/android/android_sdk_path = \"' + sdk  + '\"',
-            'export/android/java_sdk_path = \"'    + java + '\"',
-            'export/android/debug_keystore = \"'   + ws + '/debug.keystore\"',
-            'export/android/debug_keystore_user = \"androiddebugkey\"',
-            'export/android/debug_keystore_pass = \"android\"',
-          ]
-          path = home + '/.config/godot/editor_settings-4.tres'
-          os.makedirs(os.path.dirname(path), exist_ok=True)
-          open(path, 'w').write('\n'.join(lines) + '\n')
-          print('Settings written to', path)
-          "
+          ws   = os.environ['GITHUB_WORKSPACE']
+          ks   = ws + '/debug.keystore'
 
-      - name: Inject keystore into export_presets.cfg
-        run: |
-          sed -i "s|keystore/debug=\"\"|keystore/debug=\"$GITHUB_WORKSPACE/debug.keystore\"|g" export_presets.cfg
-          sed -i "s|keystore/debug_user=\"\"|keystore/debug_user=\"androiddebugkey\"|g" export_presets.cfg
-          sed -i "s|keystore/debug_password=\"\"|keystore/debug_password=\"android\"|g" export_presets.cfg
-          grep keystore export_presets.cfg
+          # Editor settings
+          settings_path = home + '/.config/godot/editor_settings-4.tres'
+          os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+          with open(settings_path, 'w', newline='\n') as f:
+              f.write('[gd_resource type="EditorSettings" format=3]\n\n')
+              f.write('[resource]\n')
+              f.write(f'export/android/android_sdk_path = "{sdk}"\n')
+              f.write(f'export/android/java_sdk_path = "{java}"\n')
+              f.write(f'export/android/debug_keystore = "{ks}"\n')
+              f.write('export/android/debug_keystore_user = "androiddebugkey"\n')
+              f.write('export/android/debug_keystore_pass = "android"\n')
+          print('Editor settings written.')
+
+          # Export preset (regenerate with correct keystore, LF endings)
+          preset_path = ws + '/export_presets.cfg'
+          with open(preset_path, 'w', newline='\n') as f:
+              f.write('; Godot 4 Export Presets\n\n')
+              f.write('[preset.0]\n\n')
+              f.write('name="Android"\n')
+              f.write('platform="Android"\n')
+              f.write('runnable=false\n')
+              f.write('dedicated_server=false\n')
+              f.write('custom_features=""\n')
+              f.write('export_filter="all_resources"\n')
+              f.write('include_filter=""\n')
+              f.write('exclude_filter=""\n')
+              f.write(f'export_path="{ws}/builds/SpaceInvadersPro.apk"\n')
+              f.write('encryption_include_filters=""\n')
+              f.write('encryption_exclude_filters=""\n')
+              f.write('encrypt_pck=false\n')
+              f.write('encrypt_directory=false\n')
+              f.write('script_export_mode=1\n\n')
+              f.write('[preset.0.options]\n\n')
+              f.write('custom_template/debug=""\n')
+              f.write('custom_template/release=""\n')
+              f.write('gradle_build/use_gradle_build=false\n')
+              f.write('gradle_build/export_format=0\n')
+              f.write('gradle_build/sdk_path=""\n')
+              f.write('package/unique_name="com.yourstudio.spaceinvaderspro"\n')
+              f.write('package/name="Space Invaders Pro"\n')
+              f.write('package/signed=false\n')
+              f.write('package/classify_as_game=true\n')
+              f.write('architectures/armeabi-v7a=true\n')
+              f.write('architectures/arm64-v8a=true\n')
+              f.write('architectures/x86=false\n')
+              f.write('architectures/x86_64=false\n')
+              f.write(f'keystore/debug="{ks}"\n')
+              f.write('keystore/debug_user="androiddebugkey"\n')
+              f.write('keystore/debug_password="android"\n')
+              f.write('keystore/release=""\n')
+              f.write('keystore/release_user=""\n')
+              f.write('keystore/release_password=""\n')
+              f.write('version/code=1\n')
+              f.write('version/name="1.0.0"\n')
+              f.write('screen/immersive_mode=true\n')
+              f.write('screen/support_small=true\n')
+              f.write('screen/support_normal=true\n')
+              f.write('screen/support_large=true\n')
+              f.write('screen/support_xlarge=true\n')
+              f.write('xr_features/xr_mode=0\n')
+              f.write('permissions/vibrate=true\n')
+              f.write('graphics/opengl_debug=false\n')
+          print('Export preset written.')
+          print('Keystore path:', ks)
+          PYEOF
 
       - name: Import project
         run: timeout 60 godot --headless --import 2>&1 || true
 
-      - name: Re-apply editor settings (import may reset them)
+      - name: Rewrite editor settings after import
         run: |
-          python3 -c "
+          python3 << 'PYEOF'
           import os
           sdk  = os.environ.get('ANDROID_SDK_ROOT', '/usr/local/lib/android/sdk')
           java = os.environ.get('JAVA_HOME', '/usr/lib/jvm/temurin-11-jdk-amd64')
           home = os.path.expanduser('~')
-          ws   = os.environ.get('GITHUB_WORKSPACE', '')
-          lines = [
-            '[gd_resource type=\"EditorSettings\" format=3]',
-            '',
-            '[resource]',
-            'export/android/android_sdk_path = \"' + sdk  + '\"',
-            'export/android/java_sdk_path = \"'    + java + '\"',
-            'export/android/debug_keystore = \"'   + ws + '/debug.keystore\"',
-            'export/android/debug_keystore_user = \"androiddebugkey\"',
-            'export/android/debug_keystore_pass = \"android\"',
-          ]
+          ws   = os.environ['GITHUB_WORKSPACE']
+          ks   = ws + '/debug.keystore'
           path = home + '/.config/godot/editor_settings-4.tres'
-          open(path, 'w').write('\n'.join(lines) + '\n')
-          print('Settings re-applied')
-          "
+          with open(path, 'w', newline='\n') as f:
+              f.write('[gd_resource type="EditorSettings" format=3]\n\n')
+              f.write('[resource]\n')
+              f.write(f'export/android/android_sdk_path = "{sdk}"\n')
+              f.write(f'export/android/java_sdk_path = "{java}"\n')
+              f.write(f'export/android/debug_keystore = "{ks}"\n')
+              f.write('export/android/debug_keystore_user = "androiddebugkey"\n')
+              f.write('export/android/debug_keystore_pass = "android"\n')
+          print('Editor settings rewritten. Keystore:', ks)
+          PYEOF
 
       - name: Export APK
         run: |
-          mkdir -p builds
+          mkdir -p "$GITHUB_WORKSPACE/builds"
+          echo "--- export_presets.cfg keystore ---"
+          grep keystore "$GITHUB_WORKSPACE/export_presets.cfg"
+          echo "--- editor settings ---"
+          cat "$HOME/.config/godot/editor_settings-4.tres"
+          echo "--- keystore file ---"
+          ls -la "$GITHUB_WORKSPACE/debug.keystore"
+          echo "--- running export ---"
           godot --headless --export-debug "Android" "$GITHUB_WORKSPACE/builds/SpaceInvadersPro.apk" 2>&1
 
       - name: Verify APK
-        run: ls -lh builds/
+        run: ls -lh "$GITHUB_WORKSPACE/builds/" || echo "builds dir empty"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
